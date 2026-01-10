@@ -1,25 +1,75 @@
+use serde::{Serialize, Deserialize};
+use std::fs;
 use std::io::{self, Write};
+use std::path::Path;
 
-const SPELL_NAME: [&str; 5] = ["rocket", "poison", "vines", "log", "tornado"];
-const SPELL_DAMAGE: [i32; 5] = [371, 184, 76, 41, 25];
-const MAX_ITERATIONS: i32 = 10000;
-const DAMAGE_THRESHOLD: i32 = 5;
+#[derive(Serialize, Deserialize, Debug, Clone)]
+struct Spell {
+    name: String,
+    damage: i32,
+    enabled: bool,
+}
 
-fn cal() -> bool {
+#[derive(Serialize, Deserialize, Debug)]
+struct AppConfig {
+    threshold_damage: i32,
+    max_iterations: i32,
+    spells: Vec<Spell>,
+}
+
+impl Default for AppConfig {
+    fn default() -> Self {
+        Self {
+            threshold_damage: 5,
+            max_iterations: 10000,
+            spells: vec![
+                Spell { name: "rocket".to_string(), damage: 371, enabled: true },
+                Spell { name: "poison".to_string(), damage: 184, enabled: true },
+                Spell { name: "vines".to_string(), damage: 76, enabled: true },
+                Spell { name: "log".to_string(), damage: 41, enabled: true },
+                Spell { name: "tornado".to_string(), damage: 25, enabled: true },
+            ],
+        }
+    }
+}
+
+fn get_config() -> AppConfig {
+    let path = "config.json";
+
+    if !Path::new(path).exists() {
+        let default_config = AppConfig::default();
+        let json = serde_json::to_string_pretty(&default_config).unwrap();
+        fs::write(path, json).expect("Unable to write default config");
+        println!("Created default config.json");
+        return default_config;
+    }
+
+    let data = fs::read_to_string(path).expect("Unable to read config");
+    serde_json::from_str(&data).expect("Config JSON was poorly formatted")
+}
+
+fn cal(config: &AppConfig) -> bool {
+    // Filter out disabled spells
+    let active_spells: Vec<&Spell> = config.spells.iter()
+        .filter(|s| s.enabled)
+        .collect();
+
+    if active_spells.is_empty() {
+        println!("Error: No spells are enabled in config!");
+        return false;
+    }
+
     print!("Tower Damage: ");
     io::stdout().flush().unwrap();
 
     let mut input = String::new();
     io::stdin().read_line(&mut input).unwrap();
-    
     let original_damage: i32 = match input.trim().parse() {
         Ok(num) => num,
-        Err(_) => return true, // Continue loop on invalid input
+        Err(_) => return true,
     };
 
-    if original_damage == 0 {
-        return false; // Exit program
-    }
+    if original_damage == 0 { return false; }
 
     let mut current_damage = original_damage;
     let mut current_spell_idx = 0;
@@ -31,99 +81,92 @@ fn cal() -> bool {
 
     loop {
         iterations += 1;
-        if iterations >= MAX_ITERATIONS {
-            println!("Ended search: Reached iteration limit.");
+        if iterations >= config.max_iterations {
+            println!("Ended Search: took too long!");
             break;
         }
 
-        // Apply current spell
-        current_damage -= SPELL_DAMAGE[current_spell_idx];
+        let spell = active_spells[current_spell_idx];
+        current_damage -= spell.damage;
         tree.push(current_spell_idx);
 
         if current_damage <= 0 {
-            // Check if this overshoot is better than our previous best
-            let overshoot = current_damage.abs();
-            if overshoot < solution_damage {
-                solution_damage = overshoot;
-                solution_tree = tree.clone();
-            }
-
-            // Stop if we found a "good enough" combo
-            if solution_damage <= DAMAGE_THRESHOLD {
-            println!("Ended search: Found good enough solution.");
-                break;
-            }
-
-            // BACKTRACK: Undo spells until we can try a different path
+            
+            // Backtrack logic
             while let Some(last_idx) = tree.pop() {
-                current_damage += SPELL_DAMAGE[last_idx];
-                
-                // If there is a weaker spell to try at this position, switch to it
-                if last_idx + 1 < SPELL_DAMAGE.len() {
+                current_damage += active_spells[last_idx].damage;
+                if last_idx + 1 < active_spells.len() {
+                    // if not iterate to last element e.g. max 5, 2,1,5,5 -> back trace twice
                     current_spell_idx = last_idx + 1;
                     break;
                 }
-                
-                // If we've exhausted all spells at this level and the tree is empty, we're done
                 if tree.is_empty() {
-                    println!("Ended search: Explored all viable combinations.");
-                    return print_result(solution_tree, solution_damage);
+                    // backtrace to first
+                    println!("Ended Search: Looped through all solutions!");
+                    print_result(&active_spells, solution_tree, solution_damage);
+                    return true;
                 }
             }
+            
+            if current_damage < solution_damage {
+                solution_damage = current_damage;
+                solution_tree = tree.clone();
+            }
+
+            if solution_damage <= config.threshold_damage {
+                println!("Ended Search: Found good enough solution!");
+                break;
+            }
+
         } else {
-            // Damage is still positive, try the strongest spell again (greedy)
             current_spell_idx = 0;
         }
     }
 
-    print_result(solution_tree, solution_damage)
-}
-
-fn print_result(solution_tree: Vec<usize>, final_damage: i32) -> bool {
-    if solution_tree.is_empty() {
-        println!("No solution found.");
-        return true;
-    }
-
-    println!("\n--- Spells ---");
-    let mut last_spell_printed: i32 = -1;
-    let mut spell_count: i32 = 0;
-    
-    for &spell_idx in &solution_tree {
-        let current_spell = spell_idx as i32;
-        if last_spell_printed == current_spell {
-            spell_count += 1;
-        } else {
-            if last_spell_printed != -1 {
-                print_spell(last_spell_printed as usize, spell_count);
-            }
-            spell_count = 1;
-            last_spell_printed = current_spell;
-        }
-    }
-    
-    if last_spell_printed != -1 {
-        print_spell(last_spell_printed as usize, spell_count);
-    }
-    
-    println!("Remaining Health: {}", final_damage);
-    println!("------------------------");
+    print_result(&active_spells, solution_tree, solution_damage);
     true
 }
 
-fn print_spell(idx: usize, count: i32) {
-    if count > 1 {
-        println!("{} ×{}", SPELL_NAME[idx], count);
-    } else {
-        println!("{}", SPELL_NAME[idx]);
+fn print_result(active_spells: &[&Spell], tree: Vec<usize>, final_damage: i32) {
+    println!("\n-------------------");
+    if tree.is_empty() {
+        println!("No solution.");
+        return;
     }
+    
+    let mut last_idx = -1;
+    let mut count = 0;
+    for &idx in &tree {
+        if last_idx == idx as i32 {
+            count += 1;
+        } else {
+            if last_idx != -1 {
+                let name: String = active_spells[last_idx as usize].name.clone();
+                let damage: i32 = active_spells[last_idx as usize].damage;
+                if count == 1 {
+                    println!("{:>8}    | {}", name, damage);
+                } else {
+                    println!("{:>8} x{:2}| {} ", name, count, damage * count);
+                }
+            }
+            last_idx = idx as i32;
+            count = 1;
+        }
+    }
+    let name: String = active_spells[last_idx as usize].name.clone();
+    let damage: i32 = active_spells[last_idx as usize].damage;
+    if count == 1 {
+        println!("{:>8}    | {}", name, damage);
+    } else {
+        println!("{:>8} x{:2}| {} ", name, count, damage * count);
+    }
+    println!("\nRemaining: {}", final_damage);
+    println!("--------------------\n");
 }
 
 fn main() {
-    println!("Spell Calculator (Enter 0 to quit)");
+    let config = get_config();
     loop {
-        if !cal() {
-            break;
-        }
+        if !cal(&config) { break; }
     }
 }

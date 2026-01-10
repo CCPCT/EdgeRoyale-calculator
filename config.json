@@ -1,0 +1,31 @@
+{
+  "threshold_damage": 5,
+  "max_iterations": 10000,
+  "spells": [
+    {
+      "name": "rocket",
+      "damage": 371,
+      "enabled": true
+    },
+    {
+      "name": "poison",
+      "damage": 184,
+      "enabled": true
+    },
+    {
+      "name": "vines",
+      "damage": 76,
+      "enabled": true
+    },
+    {
+      "name": "log",
+      "damage": 41,
+      "enabled": true
+    },
+    {
+      "name": "tornado",
+      "damage": 25,
+      "enabled": true
+    }
+  ]
+}
