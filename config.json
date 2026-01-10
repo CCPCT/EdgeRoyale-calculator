@@ -1,6 +1,6 @@
 {
   "threshold_damage": 5,
-  "max_iterations": 10000,
+  "max_iterations": 100,
   "spells": [
     {
       "name": "rocket",

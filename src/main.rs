@@ -2,6 +2,7 @@ use serde::{Serialize, Deserialize};
 use std::fs;
 use std::io::{self, Write};
 use std::path::Path;
+use std::process::Command;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 struct Spell {
@@ -21,7 +22,7 @@ impl Default for AppConfig {
     fn default() -> Self {
         Self {
             threshold_damage: 5,
-            max_iterations: 10000,
+            max_iterations: 100,
             spells: vec![
                 Spell { name: "rocket".to_string(), damage: 371, enabled: true },
                 Spell { name: "poison".to_string(), damage: 184, enabled: true },
@@ -68,6 +69,11 @@ fn cal(config: &AppConfig) -> bool {
         Ok(num) => num,
         Err(_) => return true,
     };
+
+    if original_damage == -1 {
+        open_config_file("config.json");
+        return true; // Return to the start of the loop
+    }
 
     if original_damage == 0 { return false; }
 
@@ -164,8 +170,25 @@ fn print_result(active_spells: &[&Spell], tree: Vec<usize>, final_damage: i32) {
     println!("--------------------\n");
 }
 
+fn open_config_file(path: &str) {
+    let result = if cfg!(target_os = "windows") {
+        Command::new("notepad").arg(path).spawn()
+    } else if cfg!(target_os = "macos") {
+        Command::new("open").arg("-t").arg(path).spawn()
+    } else {
+        // Assume Linux/Unix
+        Command::new("xdg-open").arg(path).spawn()
+    };
+
+    if let Err(e) = result {
+        println!("Failed to open config file: {}", e);
+    } else {
+        println!("Opened config.json in your editor.");
+    }
+}
 fn main() {
     let config = get_config();
+    println!(">0 for calculation\n0 for exit\n-1 for settings");
     loop {
         if !cal(&config) { break; }
     }
