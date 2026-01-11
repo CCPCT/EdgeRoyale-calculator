@@ -8,5 +8,4 @@ config:
 -
 when first started this program, a config json file will be created. Enter -1 to tower damage to edit the config.  
 the lower the maximum health is, the more iteration u need to give, to make sure it doesnt exit too early.  
-spells should be ordered in decending damage.  
 set the spell to disable if u dont have the spell  

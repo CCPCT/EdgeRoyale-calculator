@@ -13,8 +13,18 @@
       "enabled": true
     },
     {
+      "name": "void 1",
+      "damage": 144,
+      "enabled": true
+    },
+    {
       "name": "vines",
-      "damage": 76,
+      "damage": 75,
+      "enabled": true
+    },
+    {
+      "name": "void 2",
+      "damage": 184,
       "enabled": true
     },
     {
