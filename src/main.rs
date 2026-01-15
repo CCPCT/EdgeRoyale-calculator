@@ -19,14 +19,14 @@ struct AppConfig {
 impl Default for AppConfig {
     fn default() -> Self {
         Self {
-            threshold_damage: 5,
-            max_iterations: 100,
+            threshold_damage: 3,
+            max_iterations: 10000,
             spells: vec![
                 Spell { name: "rocket".to_string(), damage: 371, enabled: true },
                 Spell { name: "poison".to_string(), damage: 184, enabled: true },
                 Spell { name: "void 1".to_string(), damage: 144, enabled: true },
-                Spell { name: "vines".to_string(), damage: 75, enabled: true },
-                Spell { name: "void 2".to_string(), damage: 184, enabled: true },
+                Spell { name: "vines".to_string(), damage: 76, enabled: true },
+                Spell { name: "void 2".to_string(), damage: 75, enabled: true },
                 Spell { name: "log".to_string(), damage: 41, enabled: true },
                 Spell { name: "tornado".to_string(), damage: 25, enabled: true }
             ],
