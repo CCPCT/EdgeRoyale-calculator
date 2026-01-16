@@ -2,6 +2,7 @@ use serde::{Serialize, Deserialize};
 use std::fs;
 use std::io::{self, Write};
 use std::path::Path;
+use std::process::Command;
 #[derive(Serialize, Deserialize, Debug, Clone)]
 struct Spell {
     name: String,
@@ -179,9 +180,22 @@ fn print_result(active_spells: &[Spell], tree: Vec<usize>, final_damage: i32) {
 
 fn open_config_file(path: &str) {
     // open config file for user to edit
-    opener::open(path).expect("Error: Could not open file!");
-    println!("Opened config file!");
-    print!("Press Enter to continue... (ignore output of the text editor if present)");
+    if let Err(_) = opener::open(path) {
+        println!("GUI open failed. Open config.json yourself...");
+
+        let status = Command::new("cat")
+            .arg(path)
+            .status();
+
+        println!();
+
+        if status.is_err() {
+            eprintln!("Error: Could not even read the file in terminal.\n");
+        }
+    } else {
+        println!("Opened config file!");
+    }
+    print!("Press Enter to continue...");
     io::stdout().flush().unwrap();
     let mut discard = String::new();
     io::stdin().read_line(&mut discard).unwrap();
