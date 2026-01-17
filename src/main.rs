@@ -93,6 +93,11 @@ fn cal(config: &AppConfig) -> bool {
     let mut solution_tree: Vec<usize> = Vec::new();
     let mut solution_damage: i32 = i32::MAX;
 
+    let string_length: usize = config.spells.iter()
+        .map(|s| s.name.len())
+        .max()
+        .unwrap_or(10);
+
     loop {
         iterations += 1;
         if iterations >= config.max_iterations {
@@ -117,7 +122,7 @@ fn cal(config: &AppConfig) -> bool {
                 if tree.is_empty() {
                     // backtrace to first
                     println!("Ended Search: Looped through all solutions!");
-                    print_result(&config.spells, solution_tree, solution_damage);
+                    print_result(&config.spells, solution_tree, solution_damage, string_length);
                     return true;
                 }
             }
@@ -137,11 +142,11 @@ fn cal(config: &AppConfig) -> bool {
         }
     }
 
-    print_result(&config.spells, solution_tree, solution_damage);
+    print_result(&config.spells, solution_tree, solution_damage, string_length);
     true
 }
 
-fn print_result(active_spells: &[Spell], tree: Vec<usize>, final_damage: i32) {
+fn print_result(active_spells: &[Spell], tree: Vec<usize>, final_damage: i32, str_length: usize) {
     println!("\n-------------------");
     if tree.is_empty() {
         println!("No solution.");
@@ -158,9 +163,9 @@ fn print_result(active_spells: &[Spell], tree: Vec<usize>, final_damage: i32) {
                 let name: String = active_spells[last_idx as usize].name.clone();
                 let damage: i32 = active_spells[last_idx as usize].damage;
                 if count == 1 {
-                    println!("{:>8}    | {}", name, damage);
+                    println!("{:>str_length$}    | {}", name, damage);
                 } else {
-                    println!("{:>8} x{:2}| {} ", name, count, damage * count);
+                    println!("{:>str_length$} x{:2}| {} ", name, count, damage * count);
                 }
             }
             last_idx = idx as i32;
